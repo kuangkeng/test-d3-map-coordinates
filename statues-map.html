@@ -6,6 +6,7 @@
     <meta charset="utf-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1">
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/3.5.5/d3.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/topojson/2.2.0/topojson.min.js"></script>
     <script type="text/javascript" src="statuedata.js"></script>
@@ -14,46 +15,80 @@
 <style>
 
 body {
-  font-family: "Source Sans Pro","Helvetica Light",Helvetica,Arial,"Nimbus Sans L",sans-serif;
+  font-family: Lato;
   font-size: 112.5%;
-  line-height: 1.5em;
-  color: #666666;
+  line-height: 1.1em;
+  color: black;
 } 
 
 #wrapper {
   border:1px solid #D3D3D3;
-  max-width: 1000px;  /*MODIFY: set the maximum width of the map.*/
+  max-width: 800px;  /*MODIFY: set the maximum width of the map.*/
   margin: 0 auto;
 }
 
 .head {padding:0px 10px;}
 
 .note {
-  font-size: 11px;
-  color: #808080;
-  line-height: 14px;
+  font-size: 12px;
+  color: #33333c;
+  line-height: 12px;
   padding:0px 10px 10px 10px;
 }
 
 .headline {
-  font-size: 18px;
-  font-weight: normal;
+  font-style: normal;
+  font-size: 24px;
+  font-weight: 400;
   padding-bottom: 10px;
   padding-top: 10px;
-  color: #33333c;
-  line-height: 24px;
 }
 
 #text {
-  font-size: 14px;
+  font-size: 18px;
   font-weight: normal;
   line-height: 18px;
-} 
+}
 
 .background {
   fill: none;
   pointer-events: all;
 }
+
+#legend-container {
+  padding:10px;
+}
+
+.colorlabel {
+  font-size: 16px;
+  font-weight: normal;
+} 
+
+.colorblock {
+  width:20px;
+  height:20px;
+}
+
+.colorlabel {
+  width:130px;
+  padding-left: 5px;
+}
+
+#legend-color-box, .legend-color{
+  display:flex;
+  justify-content: flex-start;
+}
+
+.legend-color{
+  align-items: center;
+}
+
+.legend-color {
+  width:140px;
+}
+
+#bucket0 { background-color: #d3d3d3; }
+#bucket1 { background-color: #c7e9ed; }
 
 /*MODIFY: This class name is determined by the name of the "objects" in your map file.*/
 .states {
@@ -61,23 +96,39 @@ body {
   stroke: #fff;
   stroke-width: 1.5px;
   stroke-linejoin: round;
+  pointer-events: none;
+}
+
+.statesborder {
+  fill: #c7e9ed;
+  stroke: #fff;
+  stroke-width: 1.5px;
+  stroke-linejoin: round;
+  pointer-events: none;
+}
+
+.circles {
+  fill: #B86637;
+  stroke: #fff;
+  stroke-width: 1px;
+  pointer-events: all;
 }
 
 /*MODIFY: Set the height of tooltip to fit your content.*/
 .tooltip {
   position: absolute;
-  left: 75px;
+  width: 260px;
   text-align: left;
   padding: 8px;
   font-size: 14px;
-  line-height: 15px;
+  line-height: 18px;
   background: #FFFFFF;
   border:1px solid #D3D3D3;
   border-radius: 5px;
   pointer-events: none;
 }
 
-.sitename,.sitepurpose, .sitedesc, .stateamt, .sitestate {
+.sitename,.sitepurpose, .sitedesc, .siteamt, .sitestate {
   margin-bottom: 5px;
 }
 
@@ -86,7 +137,7 @@ body {
   font-size: 16px;
 }
 
-.sitefund, .sitestate, .sitepurpose {
+.sitefund, .sitestate, .sitepurpose, .sitefundfederal, .sitefundstate, .sitefundlocal, .sitefundunspec {
   font-weight: bold;
 }
 
@@ -95,9 +146,19 @@ body {
   height: 15px;
 }
 
-@media (max-width: 400px ) { 
+@media (max-width: 500px ) { 
     .headline {font-size: 16px; line-height: 20px; padding-bottom: 0px;}
-    #text {font-size: 12px;line-height: 14px;padding-bottom: 3px;}
+    #text {font-size: 13px;line-height: 15px;padding-bottom: 3px;}
+    .colorlabel {font-size:12px;}
+    .note {font-size: 11px;}
+    .tooltip {width: 200px; font-size: 12px; line-height: 14px;}
+    .sitename {font-size: 12px;}
+    .sitestate {font-size: 10px;}
+}
+
+@media (max-width: 400px ) { 
+    .tooltip {width: 150px;}
+    .sitename,.sitepurpose, .sitedesc, .siteamt, .sitestate {margin-bottom: 2px;}
 }
 
 </style>
@@ -105,15 +166,24 @@ body {
 <body>
 <div id="wrapper"> 
     <div class="head">
-        <!-- INPUT: title of map -->
         <div class="headline">Funding Confederate Memorials</div>
-        <!-- INPUT: description of map -->
-        <div id="text">Explore a decade of taxpayer support for Confederate sites and organizations</div> 
+        <div id="text">Explore a decade of taxpayer support for Confederate sites and organizations in border states and states of the former Confederacy</div> 
     </div>   
     <div id="map-container"></div>
+    <div id="legend-container">
+      <div id="legend-color-box">
+        <div class="legend-color">
+          <div class="colorblock" id="bucket0"></div>
+          <div class="colorlabel">Confederate state</div>
+        </div>
+        <div class="legend-color">
+          <div class="colorblock" id="bucket1"></div>
+          <div class="colorlabel">Border state</div>
+        </div>
+      </div>
+    </div>
     <div class="note">
-        <!-- INPUT: data source -->
-        Source: Tax and budget documents, plus interviews with state and federal officials, by The Investigative Fund. Amounts cover the most recent available 10 years.
+        Source: Tax and budget documents, plus interviews with state and federal officials, obtained by The Investigative Fund. Amounts cover the most recent available 10 years.
     </div>
 </div>
 
@@ -127,24 +197,30 @@ var div = d3.select("body").append("div")
   .style("opacity", 0);
 
 //Set dimensions
-var margin = {top: 10, left: 0, bottom: 10, right: 0}
-  , width = window.outerWidth
-  , width = width - margin.left - margin.right
-  , mapRatio = .42 //depending on the map size
+var width = $("#wrapper").width()
+  , mapRatio = 0.8 //depending on the map size
   , height = width * mapRatio;
+
+//Set offset for tooltip on mobile
+if($(window).width()<500){
+  var tooltipOffset = 175;
+} else {
+  var tooltipOffset = 275;
+}
 
 // set projection
 var projection = d3.geo.mercator()
-    .scale(width/0.75)
-    .center([-86.5, 32.5])
+    .scale(width/0.58)
+    .center([-90.5, 33.5])
     .translate([width / 2, height / 2]);
 
 // create path variable
 var path = d3.geo.path()
     .projection(projection);
 
-
 d3.json("us-confederate-states-map.json", function(error, topo) {
+
+
 
   states = topojson.feature(topo, topo.objects.states).features
 
@@ -159,29 +235,57 @@ d3.json("us-confederate-states-map.json", function(error, topo) {
     .attr("height", height);
 
 	// add states from topojson
-	svg.attr("class", "states")
-      .selectAll("path")
+	svg.selectAll("path")
       .data(states).enter()
       .append("path")
-      .attr("class", "feature")
-      .attr("d", path);
+      .attr("d", path)
+      // .attr("class", "statesborder")
+      .attr("class", function(d) { 
+        if (d.id == "29" || d.id == "21" || d.id == "54" || d.id == "24" || d.id == "10"){ return "statesborder" } 
+          else { return "states" }
+      });
 
-    // add circles to svg
+  // add divs into tooltip box
+  div.append("div").attr("class", "sitestate");
+  div.append("div").attr("class", "sitename");
+  div.append("div").attr("class", "sitepurpose");
+  div.append("div").attr("class", "sitedesc");
+  div.append("div").attr("class", "sitefundfederal");
+  div.append("div").attr("class", "siteamtfederal");
+  div.append("div").attr("class", "sitefundstate");
+  div.append("div").attr("class", "siteamtstate");
+  div.append("div").attr("class", "sitefundlocal");
+  div.append("div").attr("class", "siteamtlocal");
+  div.append("div").attr("class", "sitefundunspec");
+  div.append("div").attr("class", "siteamtunspec");
+
+  // add circles to svg
   svg.selectAll("circle")
 		.data(statuedata).enter()
 		.append("circle")
 		.attr("cx", function (d) { return projection(d.coordinates)[0]; })
     .attr("cy", function (d) { return projection(d.coordinates)[1]; })
 		.attr("r", "8px")
-		.attr("fill", "#B86637")
+    .attr("class", "circles")
     //Tooltip when mouseover
     .on("mouseover", function(d) {  
       d3.select(this).transition().duration(300).style("fill", "#FFA500");
       div.transition().duration(300)
-      .style("opacity", 0.9)
-      div.html("<div class='sitestate'>" + d.state + "</div><div class='sitename'>" + d.site + "</div><div class='sitepurpose'>" + d.purpose + "</div><div class='sitedesc'>" + d.description + "</div><div class='sitefund'>Federal:</div><div class='stateamt'>" + d.fundfederal + "</div><div class='sitefund'>State:</div><div class='stateamt'>" + d.fundstate + "</div><div class='sitefund'>Local:</div><div class='stateamt'>" + d.fundlocal + "</div><div class='sitefund'>Unspecified government contribution:</div><div class='stateamt'>" + d.fundunspec + "</div>")
-      .style("right", (width-d3.event.pageX) + "px")
-      .style("top", (d3.event.pageY -50) + "px");     
+        .style("opacity", 0.9)
+        .style("left", (d3.event.pageX) - tooltipOffset + "px")
+        .style("top", (d3.event.pageY -150) + "px");
+      d3.select(".sitestate").text(d.state);
+      d3.select(".sitename").text(d.site);
+      d3.select(".sitepurpose").text(function (){ if(d.purpose == ""){} else {return d.purpose}});
+      d3.select(".sitedesc").text(d.description);
+      d3.select(".sitefundfederal").text(function (){ if(d.fundfederal == ""){} else {return "Federal:"}});
+      d3.select(".siteamtfederal").text(function (){ if(d.fundfederal == ""){} else {return d.fundfederal}});
+      d3.select(".sitefundstate").text(function (){ if(d.fundstate == ""){} else {return "State:"}});
+      d3.select(".siteamtstate").text(function (){ if(d.fundstate == ""){} else {return d.fundstate}});
+      d3.select(".sitefundlocal").text(function (){ if(d.fundlocal == ""){} else {return "Local:"}});
+      d3.select(".siteamtlocal").text(function (){ if(d.fundlocal == ""){} else {return d.fundlocal}});
+      d3.select(".sitefundunspec").text(function (){ if(d.fundunspec == ""){} else {return "Unspecified government contribution:"}});
+      d3.select(".siteamtunspec").text(function (){ if(d.fundunspec == ""){} else {return d.fundunspec}});
     })
     .on("mouseout", function() {
       d3.select(this).transition().duration(300).style("fill", "#B86637");
@@ -192,16 +296,14 @@ d3.json("us-confederate-states-map.json", function(error, topo) {
   d3.select(window).on('resize', resize);
 
   function resize() {
-
-    var w = window.outerWidth;
     // adjust things when the window size changes
-    width = w - margin.left - margin.right;
+    var width = $("#wrapper").width(),
     height = width * mapRatio;
-
+    
     // update projection
     var newProjection = d3.geo.mercator()
-    .scale(width/0.75)
-    .center([-86.5, 32.5])
+    .scale(width/0.58)
+    .center([-90.5, 33.5])
     .translate([width / 2, height / 2]);
 
     //Update path
@@ -220,7 +322,6 @@ d3.json("us-confederate-states-map.json", function(error, topo) {
     svg.selectAll("circle")
     .attr("cx", function (d) { return newProjection(d.coordinates)[0]; })
     .attr("cy", function (d) { return newProjection(d.coordinates)[1]; });
-
   }
 
 resize();
