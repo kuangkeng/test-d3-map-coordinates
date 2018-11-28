@@ -232,7 +232,8 @@ d3.json("us-confederate-states-map.json", function(error, topo) {
   svg.append("rect")
     .attr("class", "background")
     .attr("width", width)
-    .attr("height", height);
+    .attr("height", height)
+    .on("click", clicked);
 
 	// add states from topojson
 	svg.selectAll("path")
@@ -325,6 +326,11 @@ d3.json("us-confederate-states-map.json", function(error, topo) {
   }
 
 resize();
+
+  function clicked(d) {
+    d3.selectAll("circle").transition().duration(300).style("fill", "#B86637");
+    d3.select(".tooltip").transition().duration(300).style("opacity", 0);
+  }
 
 });
 
